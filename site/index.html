@@ -16,22 +16,13 @@
         <button id="export">Export Progress</button>
       </div>
 
-      <!-- Supabase auth + sync UI -->
-      <div id="auth" class="auth">
-        <input id="authEmail" placeholder="email@example.com" />
-        <button id="signIn">Sign in (magic link)</button>
-        <button id="signOut" style="display:none">Sign out</button>
-        <span id="userInfo" style="margin-left:8px"></span>
-      </div>
-
-      <!-- Server-side auto-save enabled; uses Supabase if configured -->
+      <!-- Server-side auto-save enabled; no sign-in required -->
 
       <div id="overview">Overall progress: <span id="overall">0%</span></div>
 
       <div id="topics"></div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
     <script src="env.js"></script>
     <script src="app.js"></script>
   </body>
