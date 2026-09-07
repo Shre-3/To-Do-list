@@ -7,6 +7,9 @@ h1{margin:0 0 4px}
 #controls{margin:12px 0}
 #controls button{margin-right:8px;padding:6px 10px;border-radius:6px;border:1px solid #e5e7eb;background:white;cursor:pointer}
 #overview{margin:12px 0;font-weight:600}
+.auth{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#status{min-height:1.5em;margin:12px 0}
+.auth button{cursor:pointer}
 .topic{margin-top:18px}
 .topic h2{font-size:16px;margin:0 0 8px}
 ul{list-style:none;padding:0;margin:0}
