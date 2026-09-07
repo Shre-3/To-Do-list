@@ -24,6 +24,30 @@ npm start
 ```
 
 Notes: the client will attempt to load a server copy on page load and will silently POST updates as you check items. For production you should add authentication and use a proper user identifier instead of the default key.
+ 
+Supabase (recommended) setup
+1. Create a free Supabase project at https://app.supabase.com and note the `URL` and `anon` key.
+2. In the Supabase SQL editor, run:
+
+```sql
+create table if not exists progress (
+	user_id text primary key,
+	data jsonb,
+	updated_at timestamptz
+);
+```
+
+3. In `site/index.html`, before the `app.js` script add (or set these in your hosting environment):
+
+```html
+<script>
+	window.SUPABASE_URL = 'https://your-project.supabase.co';
+	window.SUPABASE_ANON_KEY = 'public-anon-key';
+</script>
+```
+
+4. Open the site, enter your email and click `Sign in (magic link)`. After signing in, the app will sync to Supabase and your progress will be available across devices (not in incognito).
+
 
 Next steps (optional):
 

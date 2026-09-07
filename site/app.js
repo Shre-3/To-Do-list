@@ -1,6 +1,11 @@
 const STORAGE_KEY = 'tech_todo_progress_v1';
 const SERVER_URL = (window.SERVER_URL || 'http://localhost:3000').replace(/\/$/, '');
 const SERVER_ID = (window.SERVER_ID || 'default');
+// Supabase settings (provide by setting window.SUPABASE_URL and window.SUPABASE_ANON_KEY in index.html)
+const SUPABASE_URL = window.SUPABASE_URL || null;
+const SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY || null;
+let supabase = null;
+let supabaseUser = null;
 
 const topics = [
   {
@@ -63,6 +68,15 @@ function saveState(state) {
       method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({state})
     }).catch(() => {});
   } catch (e) {}
+
+  // If Supabase is configured and user is signed in, upsert the state into Supabase
+  if (supabase && supabaseUser) {
+    try {
+      supabase.from('progress').upsert({ user_id: supabaseUser.id, data: state, updated_at: new Date().toISOString() }).then(() => {});
+    } catch (e) {
+      // ignore
+    }
+  }
 }
 
 function render() {
@@ -138,8 +152,71 @@ function exportProgress() {
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('reset').addEventListener('click', resetProgress);
   document.getElementById('export').addEventListener('click', exportProgress);
+  // Initialize Supabase client if configured
+  if (SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase) {
+    try {
+      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      // auth UI handlers
+      const signInBtn = document.getElementById('signIn');
+      const signOutBtn = document.getElementById('signOut');
+      const authEmail = document.getElementById('authEmail');
+      const userInfo = document.getElementById('userInfo');
+
+      signInBtn.addEventListener('click', async () => {
+        const email = authEmail.value.trim();
+        if (!email) return alert('Enter your email');
+        await supabase.auth.signInWithOtp({ email });
+        alert('Check your email for a sign-in link (magic link)');
+      });
+
+      signOutBtn.addEventListener('click', async () => {
+        await supabase.auth.signOut();
+        supabaseUser = null;
+        userInfo.textContent = '';
+        signOutBtn.style.display = 'none';
+        signInBtn.style.display = '';
+      });
+
+      supabase.auth.onAuthStateChange(async (event, session) => {
+        const { data } = await supabase.auth.getUser();
+        supabaseUser = data.user || null;
+        if (supabaseUser) {
+          userInfo.textContent = supabaseUser.email || supabaseUser.id;
+          signOutBtn.style.display = '';
+          signInBtn.style.display = 'none';
+          // load server copy for this user
+          try {
+            const { data: row, error } = await supabase.from('progress').select('data').eq('user_id', supabaseUser.id).single();
+            if (!error && row && row.data) {
+              saveState(row.data);
+              render();
+            }
+          } catch (e) {}
+        } else {
+          userInfo.textContent = '';
+          signOutBtn.style.display = 'none';
+          signInBtn.style.display = '';
+        }
+      });
+    } catch (e) {
+      // ignore
+    }
+  }
   // On load, attempt to retrieve server copy and use it (best-effort)
   (async () => {
+    // Try Supabase session first (if configured)
+    if (supabase) {
+      try {
+        const { data } = await supabase.auth.getUser();
+        supabaseUser = data.user || null;
+        if (supabaseUser) {
+          const { data: row, error } = await supabase.from('progress').select('data').eq('user_id', supabaseUser.id).single();
+          if (!error && row && row.data) saveState(row.data);
+        }
+      } catch (e) {}
+    }
+
+    // Fallback to existing server load
     try {
       const res = await fetch(`${SERVER_URL}/load/${encodeURIComponent(SERVER_ID)}`);
       if (res.ok) {
@@ -151,6 +228,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (e) {
       // ignore network errors
     }
+
     render();
   })();
 });
